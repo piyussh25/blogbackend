@@ -17,6 +17,7 @@ router.get('/', async (req, res) => {
     const postsWithLikeStatus = posts.map(post => {
       // Convert to JSON to apply virtuals and transforms (like _id to id)
       const postJson = post.toJSON();
+      postJson.id = post._id.toString(); // Explicitly add id
       if (req.user) {
         postJson.isLiked = post.isLikedBy(req.user.id);
       }
