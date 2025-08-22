@@ -47,12 +47,28 @@ const upload = multer({
 // Upload avatar endpoint (protected)
 router.post('/avatar', auth, upload.single('avatar'), async (req, res) => {
   try {
+    console.log('Upload request received:', {
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      hasFile: !!req.file
+    });
+
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'User not authenticated properly' });
+    }
+
     // Generate the URL for the uploaded file
     const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+    console.log('File uploaded successfully:', {
+      filename: req.file.filename,
+      fileUrl: fileUrl,
+      userId: req.user.id
+    });
 
     res.json({
       message: 'Avatar uploaded successfully',
@@ -67,6 +83,8 @@ router.post('/avatar', auth, upload.single('avatar'), async (req, res) => {
 
 // Error handling middleware for multer
 router.use((error, req, res, next) => {
+  console.error('Upload middleware error:', error);
+  
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({ error: 'File too large. Maximum size is 5MB.' });
