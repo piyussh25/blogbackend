@@ -1,45 +1,182 @@
-import { Router } from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-const router = Router();
+const router = express.Router();
 
+// Register
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
-    if (!username || !email || !password) return res.status(400).json({ error: 'All fields are required' });
-    const exists = await User.findOne({ $or: [{ username }, { email }] });
-    if (exists) return res.status(409).json({ error: 'Username or email already taken' });
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({ username, email, passwordHash });
-    return res.status(201).json(user.toJSON());
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: 'Server error' });
+    const { username, email, password, displayName } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email }]
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: existingUser.username === username ? 'Username already taken' : 'Email already registered'
+      });
+    }
+
+    // Create new user
+    const user = new User({
+      username,
+      email,
+      password,
+      displayName: displayName || username
+    });
+
+    await user.save();
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Return user data (without password)
+    const userResponse = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      displayName: user.displayName,
+      avatar: user.avatar,
+      bio: user.bio,
+      createdAt: user.createdAt
+    };
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      token,
+      user: userResponse
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Registration failed' });
   }
 });
 
+// Login
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
-    const user = await User.findOne({ username });
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-    const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+
+    // Find user by username or email
+    const user = await User.findOne({
+      $or: [{ username }, { email: username }]
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check password
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
     const token = jwt.sign(
-      { username: user.username },
-      process.env.JWT_SECRET || 'dev_secret',
-      { expiresIn: '7d', subject: user.id }
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
     );
-    return res.json({ token, user: user.toJSON() });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: 'Server error' });
+
+    // Return user data (without password)
+    const userResponse = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      displayName: user.displayName,
+      avatar: user.avatar,
+      bio: user.bio,
+      createdAt: user.createdAt
+    };
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: userResponse
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
   }
 });
 
-export default router;
+// Get user profile
+router.get('/profile', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error('Profile error:', error);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+// Update user profile
+router.put('/profile', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { displayName, bio, avatar } = req.body;
+
+    // Update fields if provided
+    if (displayName !== undefined) user.displayName = displayName;
+    if (bio !== undefined) user.bio = bio;
+    if (avatar !== undefined) user.avatar = avatar;
+
+    await user.save();
+
+    // Return updated user data (without password)
+    const userResponse = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      displayName: user.displayName,
+      avatar: user.avatar,
+      bio: user.bio,
+      createdAt: user.createdAt
+    };
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: userResponse
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ error: 'Profile update failed' });
+  }
+});
+
+module.exports = router;
 
 

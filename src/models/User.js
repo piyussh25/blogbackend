@@ -1,23 +1,76 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
-const userSchema = new mongoose.Schema(
-  {
-    username: { type: String, required: true, unique: true, trim: true, minlength: 3 },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    passwordHash: { type: String, required: true },
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 30
   },
-  { timestamps: true }
-);
-
-userSchema.set('toJSON', {
-  transform: function (doc, ret) {
-    ret.id = ret._id.toString();
-    delete ret._id;
-    delete ret.__v;
-    delete ret.passwordHash;
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true
   },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6
+  },
+  displayName: {
+    type: String,
+    trim: true,
+    maxlength: 50,
+    default: function() {
+      return this.username;
+    }
+  },
+  avatar: {
+    type: String,
+    default: `https://ui-avatars.com/api/?name=${encodeURIComponent(this?.username || 'User')}&background=3b82f6&color=fff&size=128`
+  },
+  bio: {
+    type: String,
+    maxlength: 200,
+    default: ''
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-export default mongoose.model('User', userSchema);
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Method to compare password
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
+
+// Update avatar URL when username changes
+userSchema.pre('save', function(next) {
+  if (this.isModified('username') && !this.avatar.includes('ui-avatars.com')) {
+    this.avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(this.username)}&background=3b82f6&color=fff&size=128`;
+  }
+  next();
+});
+
+module.exports = mongoose.model('User', userSchema);
 
 
