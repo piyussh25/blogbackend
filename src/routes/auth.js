@@ -45,7 +45,8 @@ router.post('/register', async (req, res) => {
       displayName: user.displayName,
       avatar: user.avatar,
       bio: user.bio,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
+      role: user.role
     };
 
     res.status(201).json({
@@ -94,7 +95,8 @@ router.post('/login', async (req, res) => {
       displayName: user.displayName,
       avatar: user.avatar,
       bio: user.bio,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
+      role: user.role
     };
 
     res.json({
@@ -164,7 +166,8 @@ router.put('/profile', async (req, res) => {
       displayName: user.displayName,
       avatar: user.avatar,
       bio: user.bio,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
+      role: user.role
     };
 
     res.json({
