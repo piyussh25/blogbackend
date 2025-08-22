@@ -177,6 +177,25 @@ router.put('/profile', async (req, res) => {
   }
 });
 
+// Debug endpoint to list all users (remove in production)
+router.get('/debug/users', async (req, res) => {
+  try {
+    const users = await User.find({}).select('_id username email createdAt');
+    res.json({ 
+      count: users.length, 
+      users: users.map(u => ({
+        id: u._id,
+        username: u.username,
+        email: u.email,
+        createdAt: u.createdAt
+      }))
+    });
+  } catch (error) {
+    console.error('Debug users error:', error);
+    res.status(500).json({ error: 'Failed to get users' });
+  }
+});
+
 module.exports = router;
 
 
