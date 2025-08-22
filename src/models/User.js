@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
   },
   avatar: {
     type: String,
-    default: `https://ui-avatars.com/api/?name=${encodeURIComponent(this?.username || 'User')}&background=3b82f6&color=fff&size=128`
+    default: 'https://static.vecteezy.com/system/resources/previews/013/042/571/original/default-avatar-profile-icon-social-media-user-photo-in-flat-style-vector.jpg'
   },
   bio: {
     type: String,
