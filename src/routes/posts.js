@@ -9,8 +9,8 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const posts = await Post.find()
-      .populate('author', 'username displayName avatar')
-      .populate('comments.author', 'username displayName avatar')
+      .populate('author', 'username displayName avatar role')
+      .populate('comments.author', 'username displayName avatar role')
       .sort({ createdAt: -1 });
 
     // Add like status for authenticated users
@@ -44,8 +44,8 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
-      .populate('author', 'username displayName avatar bio')
-      .populate('comments.author', 'username displayName avatar');
+      .populate('author', 'username displayName avatar bio role')
+      .populate('comments.author', 'username displayName avatar role');
 
     if (!post) {
       return res.status(404).json({ error: 'Post not found' });
@@ -79,7 +79,7 @@ router.post('/', auth, async (req, res) => {
     });
 
     await post.save();
-    await post.populate('author', 'username displayName avatar');
+    await post.populate('author', 'username displayName avatar role');
 
     res.status(201).json(post);
   } catch (error) {
@@ -106,7 +106,7 @@ router.put('/:id', auth, async (req, res) => {
     if (content !== undefined) post.content = content.trim();
 
     await post.save();
-    await post.populate('author', 'username displayName avatar');
+    await post.populate('author', 'username displayName avatar role');
 
     res.json(post);
   } catch (error) {
@@ -141,8 +141,8 @@ router.delete('/:id', auth, async (req, res) => {
 router.get('/me/list', auth, async (req, res) => {
   try {
     const posts = await Post.find({ author: req.user.id })
-      .populate('author', 'username displayName avatar')
-      .populate('comments.author', 'username displayName avatar')
+      .populate('author', 'username displayName avatar role')
+      .populate('comments.author', 'username displayName avatar role')
       .sort({ createdAt: -1 });
 
     const postsWithLikeStatus = posts.map(post => {
@@ -198,7 +198,7 @@ router.post('/:id/comments', auth, async (req, res) => {
 
     const comment = post.addComment(req.user.id, content);
     await post.save();
-    await post.populate('comments.author', 'username displayName avatar');
+    await post.populate('comments.author', 'username displayName avatar role');
 
     // Return the newly added comment
     const newComment = post.comments[post.comments.length - 1];
