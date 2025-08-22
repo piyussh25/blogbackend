@@ -1,25 +1,27 @@
 {
   "name": "piyush-blog-backend",
   "version": "1.0.0",
-  "private": true,
-  "type": "module",
+  "description": "Blog backend with likes, comments, and user profiles",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "jsonwebtoken": "^9.0.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.5.1",
-    "morgan": "^1.10.0"
+    "dotenv": "^16.3.1",
+    "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
-  }
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["blog", "api", "nodejs", "express", "mongodb"],
+  "author": "Piyush",
+  "license": "MIT"
 }
 
 

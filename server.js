@@ -1,37 +1,40 @@
-import express from 'express';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import morgan from 'morgan';
-import cors from 'cors';
-
-import authRouter from './src/routes/auth.js';
-import postsRouter from './src/routes/posts.js';
-
-dotenv.config();
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const path = require('path');
+require('dotenv').config();
 
 const app = express();
 
-app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') || '*', credentials: true }));
-app.use(express.json({ limit: '1mb' }));
-app.use(morgan('dev'));
+// Middleware
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-app.get('/health', (req, res) => res.json({ ok: true }));
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.use('/api/auth', authRouter);
-app.use('/api/posts', postsRouter);
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URL)
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Blog API is running' });
+});
+
+// Routes
+app.use('/api/auth', require('./src/routes/auth'));
+app.use('/api/posts', require('./src/routes/posts'));
+app.use('/api/upload', require('./src/routes/upload'));
 
 const PORT = process.env.PORT || 8080;
-const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/piyush_blog';
-
-mongoose
-  .connect(MONGO_URL)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    app.listen(PORT, () => console.log(`API listening on :${PORT}`));
-  })
-  .catch((err) => {
-    console.error('Mongo connection error', err);
-    process.exit(1);
-  });
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 
