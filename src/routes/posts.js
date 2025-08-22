@@ -15,11 +15,12 @@ router.get('/', async (req, res) => {
 
     // Add like status for authenticated users
     const postsWithLikeStatus = posts.map(post => {
-      const postObj = post.toObject();
+      // Convert to JSON to apply virtuals and transforms (like _id to id)
+      const postJson = post.toJSON();
       if (req.user) {
-        postObj.isLiked = post.isLikedBy(req.user.id);
+        postJson.isLiked = post.isLikedBy(req.user.id);
       }
-      return postObj;
+      return postJson;
     });
 
     res.json(postsWithLikeStatus);
